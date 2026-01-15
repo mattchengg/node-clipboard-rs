@@ -86,6 +86,9 @@ jobs:
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             build: yarn build --target aarch64-unknown-linux-gnu --use-napi-cross
+          - host: ubuntu-latest
+            target: aarch64-linux-android
+            build: yarn build --target aarch64-linux-android --android-ndk $ANDROID_NDK_HOME
           - host: windows-latest
             target: aarch64-pc-windows-msvc
             build: yarn build --target aarch64-pc-windows-msvc
@@ -116,6 +119,22 @@ jobs:
             .cargo-cache
             target/
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.host }}
+      - name: Install Android NDK
+        if: ${{ matrix.settings.target == 'aarch64-linux-android' }}
+        uses: nttld/gh-actions-ndk@v1
+        with:
+          ndk-version: r26d
+      - name: Configure Android toolchain
+        if: ${{ matrix.settings.target == 'aarch64-linux-android' }}
+        run: |
+          NDK_HOME="${ANDROID_NDK_HOME:-$ANDROID_NDK_ROOT}"
+          TOOLCHAIN="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          echo "ANDROID_NDK_HOME=$NDK_HOME" >> $GITHUB_ENV
+          echo "$TOOLCHAIN/bin" >> $GITHUB_PATH
+          echo "CC_aarch64_linux_android=$TOOLCHAIN/bin/aarch64-linux-android21-clang" >> $GITHUB_ENV
+          echo "CXX_aarch64_linux_android=$TOOLCHAIN/bin/aarch64-linux-android21-clang++" >> $GITHUB_ENV
+          echo "AR_aarch64_linux_android=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/bin/aarch64-linux-android21-clang" >> $GITHUB_ENV
       - uses: goto-bus-stop/setup-zig@v2
         if: ${{ contains(matrix.settings.target, 'musl') }}
         with:
